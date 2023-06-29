@@ -1,6 +1,6 @@
 package mill4s
 
-import cats.effect.Async
+import cats.effect.*
 import cats.syntax.all.*
 import com.comcast.ip4s.*
 import fs2.io.net.Network
@@ -9,21 +9,21 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.middleware.Logger
 
-object Mill4sServer:
+object Mill4sServer extends IOApp:
 
-  def run[F[_]: Async: Network]: F[Nothing] = {
+  def run(args: List[String]): IO[ExitCode] = {
     for {
-      client <- EmberClientBuilder.default[F].build
-      helloWorldAlg = HelloWorld.impl[F]
-      jokeAlg = Jokes.impl[F](client)
+      client <- EmberClientBuilder.default[IO].build
+      helloWorldAlg = HelloWorld.impl[IO]
+      jokeAlg = Jokes.impl[IO](client)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
       // want to extract a segments not checked
       // in the underlying routes.
       httpApp = (
-        Mill4sRoutes.helloWorldRoutes[F](helloWorldAlg) <+>
-          Mill4sRoutes.jokeRoutes[F](jokeAlg)
+        Mill4sRoutes.helloWorldRoutes[IO](helloWorldAlg) <+>
+          Mill4sRoutes.jokeRoutes[IO](jokeAlg)
       ).orNotFound
 
       // With Middlewares in place
@@ -31,7 +31,7 @@ object Mill4sServer:
 
       _ <-
         EmberServerBuilder
-          .default[F]
+          .default[IO]
           .withHost(ipv4"0.0.0.0")
           .withPort(port"8080")
           .withHttpApp(finalHttpApp)
